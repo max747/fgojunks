@@ -7,7 +7,6 @@ import os
 import sys
 
 import cv2
-import numpy as np
 
 logger = logging.getLogger('fgo')
 logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(message)s')
@@ -55,10 +54,6 @@ def filter_contour_scrollbar(contour, im):
     # 縦長領域なので、幅に対して十分大きい高さになっていること。
     if h < w * 5:
         return False
-    # 横幅が画像サイズに対して長すぎず短すぎないこと。
-    # 長すぎる場合は画面下部の端末別表示調整用領域を検出している可能性がある。
-    # if not (w * 1.2 < im_w < w * 2):
-    #    return False
     logger.debug('scrollbar region: (x, y, width, height) = (%s, %s, %s, %s)', x, y, w, h)
     return True
 
