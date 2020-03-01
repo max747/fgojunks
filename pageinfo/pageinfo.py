@@ -12,7 +12,7 @@ logger = logging.getLogger('fgo')
 logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(message)s')
 
 
-class GannotGuessError(Exception):
+class CannotGuessError(Exception):
     pass
 
 
@@ -43,7 +43,7 @@ def filter_contour_qp(contour, im):
 
 def filter_contour_scrollbar(contour, im):
     """
-        スクロースバー領域を拾い、それ以外を除外するフィルター
+        スクロールバー領域を拾い、それ以外を除外するフィルター
     """
     im_w, im_h = im.shape[:2]
     # 画像全体に対する検出領域の面積比が一定以上であること。
@@ -100,7 +100,7 @@ def guess_pages(actual_width, actual_height, entire_width, entire_height):
     """
     if abs(entire_width - actual_width) > 5:
         # 比較しようとしている領域が異なる可能性が高い
-        raise GannotGuessError(f'幅の誤差が大きすぎます: entire_width = {entire_width}, actual_width = {actual_width}')
+        raise CannotGuessError(f'幅の誤差が大きすぎます: entire_width = {entire_width}, actual_width = {actual_width}')
 
     if actual_height * 1.1 > entire_height:
         return 1
@@ -116,7 +116,7 @@ def guess_pagenum(actual_x, actual_y, entire_x, entire_y, actual_width):
     """
     if abs(actual_x - entire_x) > 5:
         # 比較しようとしている領域が異なる可能性が高い
-        raise GannotGuessError(f'x 座標の誤差が大きすぎます: entire_x = {entire_x}, actual_x = {actual_x}')
+        raise CannotGuessError(f'x 座標の誤差が大きすぎます: entire_x = {entire_x}, actual_x = {actual_x}')
 
     delta = actual_y - entire_y
     if delta < actual_width:
@@ -134,7 +134,7 @@ def guess_lines(actual_width, actual_height, entire_width, entire_height):
     """
     if abs(entire_width - actual_width) > 5:
         # 比較しようとしている領域が異なる可能性が高い
-        raise GannotGuessError(f'幅の誤差が大きすぎます: entire_width = {entire_width}, actual_width = {actual_width}')
+        raise CannotGuessError(f'幅の誤差が大きすぎます: entire_width = {entire_width}, actual_width = {actual_width}')
 
     ratio = actual_height / entire_height
     logger.debug('scrollbar ratio: %s', ratio)
