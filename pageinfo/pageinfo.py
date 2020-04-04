@@ -187,7 +187,7 @@ def _detect_scrollbar_region(im, binary_threshold, filter_func):
     return [c for c in contours if filter_func(c, im)]
     
 
-def guess_pageinfo(im, draw_image=False):
+def guess_pageinfo(im, draw_image=False, draw_image_name=None):
     """
         ページ情報を推定する。
         返却値は (現ページ数, 全体ページ数, 全体行数)
@@ -218,7 +218,7 @@ def guess_pageinfo(im, draw_image=False):
     if draw_image:
         cv2.drawContours(cropped, actual_scrollbar_contours, -1, (0, 255, 0), 3)
         cv2.drawContours(cropped, scrollable_area_contours, -1, (255, 0, 0), 3)
-        cv2.imwrite('debug_sc.png', cropped)
+        cv2.imwrite(draw_image_name, cropped)
 
     if len(actual_scrollbar_contours) > 1:
         n = len(actual_scrollbar_contours)
@@ -250,7 +250,8 @@ def look_into_file(filename, args):
 
     # TODO QP 領域をどう扱うか未定
     # detect_qp_region(im, args.debug_draw_qp_image)
-    pagenum, pages, lines = guess_pageinfo(im, args.debug_draw_sc_image)
+    pagenum, pages, lines = guess_pageinfo(im,
+        args.debug_draw_sc_image, args.draw_sc_image_name)
     logger.debug('pagenum: %s', pagenum)
     logger.debug('pages: %s', pages)
     logger.debug('lines: %s', lines)
@@ -280,6 +281,7 @@ def parse_args():
     parser.add_argument('--debug', action='store_true')
     parser.add_argument('--debug-draw-qp-image', action='store_true')
     parser.add_argument('--debug-draw-sc-image', action='store_true')
+    parser.add_argument('--draw-sc-image-name', default='debug_sc.png')
     parser.add_argument('--output', type=argparse.FileType('w'), default=sys.stdout)
     return parser.parse_args()
 
