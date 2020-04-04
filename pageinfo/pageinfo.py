@@ -129,7 +129,7 @@ def guess_pages(actual_width, actual_height, entire_width, entire_height):
     return 3
 
 
-def guess_pagenum(actual_x, actual_y, entire_x, entire_y, actual_width):
+def guess_pagenum(actual_x, actual_y, entire_x, entire_y, entire_height):
     """
         スクロールバー領域の y 座標の位置からドロップ画像のページ数を推定する
     """
@@ -137,10 +137,17 @@ def guess_pagenum(actual_x, actual_y, entire_x, entire_y, actual_width):
         # 比較しようとしている領域が異なる可能性が高い
         raise CannotGuessError(f'x 座標の誤差が大きすぎます: entire_x = {entire_x}, actual_x = {actual_x}')
 
+    # スクロールバーと上端との空き領域の縦幅 delta と
+    # スクロール可能領域の縦幅 entire_height との比率で位置を推定する。
     delta = actual_y - entire_y
-    if delta < actual_width:
+    ratio = delta / entire_height
+    logger.debug('space above scrollbar: %s, entire_height: %s, ratio: %s', delta, entire_height, ratio)
+    if ratio < 0.1:
         return 1
-    if delta < actual_width * 7:
+    # 実測では 0.47-0.50 の間くらいになる。
+    # 7列3ページの3ページ目の値が 0.55 近辺なので、あまり余裕を持たせて大きくしすぎてもいけない。
+    # このあたりから 0.52 くらいが妥当な線ではないか。
+    if ratio < 0.52:
         return 2
     # 4 ページ以上になることはないと仮定。
     return 3
@@ -211,9 +218,7 @@ def guess_pageinfo(im, draw_image=False):
     if draw_image:
         cv2.drawContours(cropped, actual_scrollbar_contours, -1, (0, 255, 0), 3)
         cv2.drawContours(cropped, scrollable_area_contours, -1, (255, 0, 0), 3)
-        resized_im = cv2.resize(cropped, (int(cr_w/2), int(cr_h/2)))
-        cv2.imshow('image', resized_im)
-        cv2.waitKey(0)
+        cv2.imwrite('debug_sc.png', cropped)
 
     if len(actual_scrollbar_contours) > 1:
         n = len(actual_scrollbar_contours)
@@ -228,7 +233,7 @@ def guess_pageinfo(im, draw_image=False):
     esr_x, esr_y, esr_w, esr_h = cv2.boundingRect(scrollable_area_region)
 
     pages = guess_pages(asr_w, asr_h, esr_w, esr_h)
-    pagenum = guess_pagenum(asr_x, asr_y, esr_x, esr_y, asr_w)
+    pagenum = guess_pagenum(asr_x, asr_y, esr_x, esr_y, esr_h)
     lines = guess_lines(asr_w, asr_h, esr_w, esr_h)
     return (pagenum, pages, lines)
 

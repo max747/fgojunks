@@ -55,3 +55,13 @@ class PageinfoTest(unittest.TestCase):
             '000.png': (2, 2, 5),
         }
         self._test_guess_pageinfo(images_dir, expected)
+
+    def test_guess_pageinfo_003(self):
+        images_dir = get_images_absdir('003')
+        expected = {
+            '000.png': (2, 2, 6),
+            '001.png': (1, 3, 7),
+            '002.png': (2, 3, 7),
+            '003.png': (3, 3, 7),
+        }
+        self._test_guess_pageinfo(images_dir, expected)
