@@ -99,7 +99,7 @@ def filter_contour_scrollable_area(contour, im):
     return True
 
 
-def detect_qp_region(im, draw_image=False):
+def detect_qp_region(im, debug_draw_image=False, debug_image_name=None):
     """
         "所持 QP" 領域を検出する
     """
@@ -125,14 +125,13 @@ def detect_qp_region(im, draw_image=False):
 
         # TODO 切り出した領域をどう扱うか決めてない
 
-        if draw_image:
+        if debug_draw_image:
             cv2.rectangle(cropped, topleft, bottomright, (0, 0, 255), 3)
 
-    if draw_image:
+    if debug_draw_image:
         cv2.drawContours(cropped, filtered_contours, -1, (0, 255, 0), 3)
-        resized_im = cv2.resize(cropped, (int(cr_w/2), int(cr_h/2)))
-        cv2.imshow('image', resized_im)
-        cv2.waitKey(0)
+        logger.debug('writing debug image: %s', debug_image_name)
+        cv2.imwrite(debug_image_name, cropped)
 
 
 def guess_pages(actual_width, actual_height, entire_width, entire_height):
@@ -209,11 +208,11 @@ def _detect_scrollbar_region(im, binary_threshold, filter_func):
     return [c for c in contours if filter_func(c, im)]
     
 
-def guess_pageinfo(im, draw_image=False, draw_image_name=None):
+def guess_pageinfo(im, debug_draw_image=False, debug_image_name=None):
     """
         ページ情報を推定する。
         返却値は (現ページ数, 全体ページ数, 全体行数)
-        スクロールバーがない場合は全体行数の推定は不可能。その場合 0 を返す
+        スクロールバーがない場合は全体行数の推定は不可能。その場合 (1, 1, 0) を返す
     """
     # 縦4分割して4領域に分け、一番右の領域だけ使う。
     # スクロールバーの領域を調べたいならそれで十分。
@@ -237,10 +236,11 @@ def guess_pageinfo(im, draw_image=False, draw_image_name=None):
     scrollable_area_contours = _detect_scrollbar_region(
         im_gray, threshold_for_entire, filter_contour_scrollable_area)
 
-    if draw_image:
+    if debug_draw_image:
         cv2.drawContours(cropped, actual_scrollbar_contours, -1, (0, 255, 0), 3)
         cv2.drawContours(cropped, scrollable_area_contours, -1, (255, 0, 0), 3)
-        cv2.imwrite(draw_image_name, cropped)
+        logger.debug('writing debug image: %s', debug_image_name)
+        cv2.imwrite(debug_image_name, cropped)
 
     if len(actual_scrollbar_contours) > 1:
         n = len(actual_scrollbar_contours)
@@ -271,9 +271,21 @@ def look_into_file(filename, args):
     logger.debug('image size: (width, height) = (%s, %s)', im_w, im_h)
 
     # TODO QP 領域をどう扱うか未定
-    # detect_qp_region(im, args.debug_draw_qp_image)
-    pagenum, pages, lines = guess_pageinfo(im,
-        args.debug_draw_sc_image, args.draw_sc_image_name)
+    # if args.debug_qp:
+    #     debug_qp_dir = os.path.join(args.debug_out_dir, 'qp')
+    #     os.makedirs(debug_qp_dir, exist_ok=True)
+    #     debug_qp_image = os.path.join(debug_qp_dir, os.path.basename(filename))
+    # else:
+    #     debug_qp_image = None
+    # detect_qp_region(im, args.debug_qp, debug_qp_image)
+
+    if args.debug_sc:
+        debug_sc_dir = os.path.join(args.debug_out_dir, 'sc')
+        os.makedirs(debug_sc_dir, exist_ok=True)
+        debug_sc_image = os.path.join(debug_sc_dir, os.path.basename(filename))
+    else:
+        debug_sc_image = None
+    pagenum, pages, lines = guess_pageinfo(im, args.debug_sc, debug_sc_image)
     logger.debug('pagenum: %s, pages: %s, lines: %s', pagenum, pages, lines)
     return (pagenum, pages, lines)
 
@@ -298,11 +310,33 @@ def main(args):
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('filename', nargs='+')
-    parser.add_argument('--loglevel', choices=('DEBUG', 'INFO', 'WARNING'), default='INFO')
-    parser.add_argument('--debug-draw-qp-image', action='store_true')
-    parser.add_argument('--debug-draw-sc-image', action='store_true')
-    parser.add_argument('--draw-sc-image-name', default='debug_sc.png')
-    parser.add_argument('--output', type=argparse.FileType('w'), default=sys.stdout)
+    parser.add_argument(
+        '-l', '--loglevel',
+        choices=('DEBUG', 'INFO', 'WARNING'),
+        default='INFO',
+        help='set loglevel [default: INFO]',
+    )
+    # parser.add_argument(
+    #     '-dq', '--debug-qp',
+    #     action='store_true',
+    #     help='enable writing qp image for debug',
+    # )
+    parser.add_argument(
+        '-ds', '--debug-sc',
+        action='store_true',
+        help='enable writing sc image for debug',
+    )
+    parser.add_argument(
+        '-do', '--debug-out-dir',
+        default='debugimages',
+        help='output directory for debug images [default: debugimages]',
+    )
+    parser.add_argument(
+        '-o', '--output',
+        type=argparse.FileType('w'),
+        default=sys.stdout,
+        help='output file [default: STDOUT]',
+    )
     return parser.parse_args()
 
 
