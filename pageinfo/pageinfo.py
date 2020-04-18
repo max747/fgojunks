@@ -32,7 +32,6 @@ import sys
 import cv2
 
 logger = logging.getLogger('fgo')
-logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(message)s')
 
 
 class CannotGuessError(Exception):
@@ -275,9 +274,7 @@ def look_into_file(filename, args):
     # detect_qp_region(im, args.debug_draw_qp_image)
     pagenum, pages, lines = guess_pageinfo(im,
         args.debug_draw_sc_image, args.draw_sc_image_name)
-    logger.debug('pagenum: %s', pagenum)
-    logger.debug('pages: %s', pages)
-    logger.debug('lines: %s', lines)
+    logger.debug('pagenum: %s, pages: %s, lines: %s', pagenum, pages, lines)
     return (pagenum, pages, lines)
 
 
@@ -301,7 +298,7 @@ def main(args):
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('filename', nargs='+')
-    parser.add_argument('--debug', action='store_true')
+    parser.add_argument('--loglevel', choices=('DEBUG', 'INFO', 'WARNING'), default='INFO')
     parser.add_argument('--debug-draw-qp-image', action='store_true')
     parser.add_argument('--debug-draw-sc-image', action='store_true')
     parser.add_argument('--draw-sc-image-name', default='debug_sc.png')
@@ -311,6 +308,6 @@ def parse_args():
 
 if __name__ == '__main__':
     args = parse_args()
-    if args.debug:
-        logger.setLevel(logging.DEBUG)
+    logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(message)s')
+    logger.setLevel(args.loglevel)
     main(args)
