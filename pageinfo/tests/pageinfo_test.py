@@ -18,10 +18,11 @@ class PageinfoTest(unittest.TestCase):
     def _test_guess_pageinfo(self, images_dir, expected):
         for entry in os.listdir(images_dir):
             impath = os.path.join(images_dir, entry)
-            im = cv2.imread(impath)
-            logger.debug(impath)
-            actual = pageinfo.guess_pageinfo(im)
-            self.assertEqual(actual, expected[entry])
+            with self.subTest(image=impath):
+                im = cv2.imread(impath)
+                logger.debug(impath)
+                actual = pageinfo.guess_pageinfo(im)
+                self.assertEqual(actual, expected[entry])
 
     def test_guess_pageinfo_000(self):
         images_dir = get_images_absdir('000')
@@ -63,5 +64,12 @@ class PageinfoTest(unittest.TestCase):
             '001.png': (1, 3, 7),
             '002.png': (2, 3, 7),
             '003.png': (3, 3, 7),
+        }
+        self._test_guess_pageinfo(images_dir, expected)
+
+    def test_guess_pageinfo_004(self):
+        images_dir = get_images_absdir('004')
+        expected = {
+            '000.png': (1, 1, 0),
         }
         self._test_guess_pageinfo(images_dir, expected)
