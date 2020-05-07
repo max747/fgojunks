@@ -48,7 +48,7 @@ def filter_contour_qp(contour, im):
     """
         "所持 QP" エリアを拾い、それ以外を除外するフィルター
     """
-    im_w, im_h = im.shape[:2]
+    im_h, im_w = im.shape[:2]
     # 画像全体に対する検出領域の面積比が一定以上であること。
     # 明らかに小さすぎる領域はここで捨てる。
     if cv2.contourArea(contour) * 25 < im_w * im_h:
@@ -69,7 +69,7 @@ def filter_contour_scrollbar(contour, im):
     """
         スクロールバー領域を拾い、それ以外を除外するフィルター
     """
-    im_w, im_h = im.shape[:2]
+    im_h, im_w = im.shape[:2]
     # 画像全体に対する検出領域の面積比が一定以上であること。
     # 明らかに小さすぎる領域はここで捨てる。
     if cv2.contourArea(contour) * 80 < im_w * im_h:
