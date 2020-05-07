@@ -33,6 +33,8 @@ import cv2
 
 logger = logging.getLogger('fgo')
 
+NOSCROLL_PAGE_INFO = (1, 1, 0)
+
 
 class CannotGuessError(Exception):
     pass
@@ -212,7 +214,8 @@ def guess_pageinfo(im, debug_draw_image=False, debug_image_name=None):
     """
         ページ情報を推定する。
         返却値は (現ページ数, 全体ページ数, 全体行数)
-        スクロールバーがない場合は全体行数の推定は不可能。その場合 (1, 1, 0) を返す
+        スクロールバーがない場合は全体行数の推定は不可能。その場合は
+        NOSCROLL_PAGE_INFO すなわち (1, 1, 0) を返す
     """
     # 縦4分割して4領域に分け、一番右の領域だけ使う。
     # スクロールバーの領域を調べたいならそれで十分。
@@ -231,10 +234,15 @@ def guess_pageinfo(im, debug_draw_image=False, debug_image_name=None):
         im_gray, threshold_for_actual, filter_contour_scrollbar)
     if len(actual_scrollbar_contours) == 0:
         # スクロールバーがない場合はページ数1、全体行数は推定不能
-        return (1, 1, 0)
+        return NOSCROLL_PAGE_INFO
 
     scrollable_area_contours = _detect_scrollbar_region(
         im_gray, threshold_for_entire, filter_contour_scrollable_area)
+    if len(scrollable_area_contours) == 0:
+        # スクロール可能領域が検出できない場合、元のスクロールバーが
+        # 誤認識の可能性がきわめて高い。よってこのケースはスクロールバー
+        # なしとして扱う
+        return NOSCROLL_PAGE_INFO
 
     if debug_draw_image:
         cv2.drawContours(cropped, actual_scrollbar_contours, -1, (0, 255, 0), 3)
