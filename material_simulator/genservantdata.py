@@ -54,8 +54,8 @@ def main(args):
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-s', '--source', type=argparse.FileType, default=sys.stdin)
-    parser.add_argument('-d', '--dest', type=argparse.FileType, default=sys.stdout)
+    parser.add_argument('-s', '--source', type=argparse.FileType('r'), default=sys.stdin)
+    parser.add_argument('-d', '--dest', type=argparse.FileType('w'), default=sys.stdout)
     parser.add_argument('--delimiter', default='\t')
     parser.add_argument('--threshold', type=int, default=9)
     return parser.parse_args()
