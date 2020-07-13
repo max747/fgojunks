@@ -21,8 +21,11 @@ class PageinfoTest(unittest.TestCase):
             with self.subTest(image=impath):
                 im = cv2.imread(impath)
                 logger.debug(impath)
-                actual = pageinfo.guess_pageinfo(im)
-                self.assertEqual(actual, expected[entry])
+                try:
+                    actual = pageinfo.guess_pageinfo(im)
+                    self.assertEqual(actual, expected[entry])
+                except pageinfo.CannotGuessError as e:
+                    self.fail(f'{impath}: {e}')
 
     def test_guess_pageinfo_000(self):
         images_dir = get_images_absdir('000')
@@ -58,6 +61,9 @@ class PageinfoTest(unittest.TestCase):
         self._test_guess_pageinfo(images_dir, expected)
 
     def test_guess_pageinfo_003(self):
+        """
+            2ページ目なのに3ページ目と判定される不具合を修正。
+        """
         images_dir = get_images_absdir('003')
         expected = {
             '000.png': (2, 2, 6),
@@ -68,8 +74,29 @@ class PageinfoTest(unittest.TestCase):
         self._test_guess_pageinfo(images_dir, expected)
 
     def test_guess_pageinfo_004(self):
+        """
+            スクロールバーの誤検出により認識エラーになる件について、
+            スクロール可能領域を検出できない場合はスクロールバー
+            なしと判定するようにした。
+            https://github.com/max747/fgojunks/issues/1
+        """
         images_dir = get_images_absdir('004')
         expected = {
             '000.png': (1, 1, 0),
+        }
+        self._test_guess_pageinfo(images_dir, expected)
+
+    def test_guess_pageinfo_005(self):
+        """
+            png だと正常に通るが jpg だと NG なケースについて、
+            パラメータを修正して対応した。
+            https://github.com/max747/fgojunks/issues/2
+        """
+        images_dir = get_images_absdir('005')
+        expected = {
+            '000.png': (2, 2, 4),
+            '000.jpg': (2, 2, 4),
+            '001.png': (2, 2, 4),
+            '001.jpg': (2, 2, 4),
         }
         self._test_guess_pageinfo(images_dir, expected)

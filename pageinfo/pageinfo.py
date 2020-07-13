@@ -140,9 +140,14 @@ def guess_pages(actual_width, actual_height, entire_width, entire_height):
     """
         スクロールバー領域の高さからドロップ枠が何ページあるか推定する
     """
-    if abs(entire_width - actual_width) > 6:
+    delta = abs(entire_width - actual_width)
+    if delta > 9:
         # 比較しようとしている領域が異なる可能性が高い
-        raise CannotGuessError(f'幅の誤差が大きすぎます: entire_width = {entire_width}, actual_width = {actual_width}')
+        raise CannotGuessError(
+            f'幅の誤差が大きすぎます: delta = {delta}, '
+            f'entire_width = {entire_width}, '
+            f'actual_width = {actual_width}'
+        )
 
     if actual_height * 1.1 > entire_height:
         return 1
@@ -156,7 +161,7 @@ def guess_pagenum(actual_x, actual_y, entire_x, entire_y, entire_height):
     """
         スクロールバー領域の y 座標の位置からドロップ画像のページ数を推定する
     """
-    if abs(actual_x - entire_x) > 5:
+    if abs(actual_x - entire_x) > 9:
         # 比較しようとしている領域が異なる可能性が高い
         raise CannotGuessError(f'x 座標の誤差が大きすぎます: entire_x = {entire_x}, actual_x = {actual_x}')
 
@@ -181,9 +186,14 @@ def guess_lines(actual_width, actual_height, entire_width, entire_height):
         スクロールバー領域の高さからドロップ枠が何行あるか推定する
         スクロールバーを用いる関係上、原理的に 2 行以下は推定不可
     """
-    if abs(entire_width - actual_width) > 6:
+    delta = abs(entire_width - actual_width)
+    if delta > 9:
         # 比較しようとしている領域が異なる可能性が高い
-        raise CannotGuessError(f'幅の誤差が大きすぎます: entire_width = {entire_width}, actual_width = {actual_width}')
+        raise CannotGuessError(
+            f'幅の誤差が大きすぎます: delta = {delta}, '
+            f'entire_width = {entire_width}, '
+            f'actual_width = {actual_width}'
+        )
 
     ratio = actual_height / entire_height
     logger.debug('scrollbar ratio: %s', ratio)
@@ -228,7 +238,7 @@ def guess_pageinfo(im, debug_draw_image=False, debug_image_name=None):
     # 二値化の閾値を高めにするとスクロールバー本体の領域を検出できる。
     # 低めにするとスクロールバー可動域全体の領域を検出できる。
     threshold_for_actual = 60
-    threshold_for_entire = 25
+    threshold_for_entire = 22
     
     actual_scrollbar_contours = _detect_scrollbar_region(
         im_gray, threshold_for_actual, filter_contour_scrollbar)
