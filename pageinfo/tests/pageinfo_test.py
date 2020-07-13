@@ -98,5 +98,10 @@ class PageinfoTest(unittest.TestCase):
             '000.jpg': (2, 2, 4),
             '001.png': (2, 2, 4),
             '001.jpg': (2, 2, 4),
+            '002.jpg': (1, 2, 4),
+            '003.png': (1, 2, 4),
+            '003.jpg': (1, 2, 4),
+            '004.png': (1, 2, 4),
+            '004.jpg': (1, 2, 4),
         }
         self._test_guess_pageinfo(images_dir, expected)
