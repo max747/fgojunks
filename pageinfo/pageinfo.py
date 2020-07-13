@@ -402,9 +402,9 @@ def parse_args():
     parser.add_argument('filename', nargs='+')
     parser.add_argument(
         '-l', '--loglevel',
-        choices=('DEBUG', 'INFO', 'WARNING'),
-        default='INFO',
-        help='set loglevel [default: INFO]',
+        choices=('debug', 'info', 'warning'),
+        default='info',
+        help='set loglevel [default: info]',
     )
     # parser.add_argument(
     #     '-dq', '--debug-qp',
@@ -433,5 +433,5 @@ def parse_args():
 if __name__ == '__main__':
     args = parse_args()
     logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(message)s')
-    logger.setLevel(args.loglevel)
+    logger.setLevel(args.loglevel.upper())
     main(args)
