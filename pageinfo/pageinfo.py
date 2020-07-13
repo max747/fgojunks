@@ -327,21 +327,19 @@ def guess_pageinfo(im, debug_draw_image=False, debug_image_name=None):
     else:
         im_orig_for_debug = None
 
-    actual_scrollbar_contour, scrollable_area_contour = \
+    actual_scrollbar_region, scrollable_area_region = \
         _try_to_detect_scrollbar(im_gray, im_orig_for_debug)
 
     if debug_draw_image:
         logger.debug('writing debug image: %s', debug_image_name)
         cv2.imwrite(debug_image_name, cropped)
 
-    if actual_scrollbar_contour is None or scrollable_area_contour is None:
+    if actual_scrollbar_region is None or scrollable_area_region is None:
         # スクロールバーが検出できない or スクロールバー誤検出（と推定）
         # どちらの場合もスクロールバーなしとして扱う。
         return NOSCROLL_PAGE_INFO
 
-    actual_scrollbar_region = actual_scrollbar_contour
     asr_x, asr_y, asr_w, asr_h = cv2.boundingRect(actual_scrollbar_region)
-    scrollable_area_region = scrollable_area_contour
     esr_x, esr_y, esr_w, esr_h = cv2.boundingRect(scrollable_area_region)
 
     pages = guess_pages(asr_w, asr_h, esr_w, esr_h)
