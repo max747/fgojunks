@@ -36,11 +36,19 @@ logger = logging.getLogger('fgo')
 NOSCROLL_PAGE_INFO = (1, 1, 0)
 
 
-class CannotGuessError(Exception):
+class PageInfoError(Exception):
     pass
 
 
-class TooManyAreasDetectedError(Exception):
+class CannotGuessError(PageInfoError):
+    pass
+
+
+class TooManyAreasDetectedError(PageInfoError):
+    pass
+
+
+class ScrollableAreaNotFoundError(PageInfoError):
     pass
 
 
@@ -140,9 +148,14 @@ def guess_pages(actual_width, actual_height, entire_width, entire_height):
     """
         スクロールバー領域の高さからドロップ枠が何ページあるか推定する
     """
-    if abs(entire_width - actual_width) > 6:
+    delta = abs(entire_width - actual_width)
+    if delta > 9:
         # 比較しようとしている領域が異なる可能性が高い
-        raise CannotGuessError(f'幅の誤差が大きすぎます: entire_width = {entire_width}, actual_width = {actual_width}')
+        raise CannotGuessError(
+            f'幅の誤差が大きすぎます: delta = {delta}, '
+            f'entire_width = {entire_width}, '
+            f'actual_width = {actual_width}'
+        )
 
     if actual_height * 1.1 > entire_height:
         return 1
@@ -156,7 +169,7 @@ def guess_pagenum(actual_x, actual_y, entire_x, entire_y, entire_height):
     """
         スクロールバー領域の y 座標の位置からドロップ画像のページ数を推定する
     """
-    if abs(actual_x - entire_x) > 5:
+    if abs(actual_x - entire_x) > 9:
         # 比較しようとしている領域が異なる可能性が高い
         raise CannotGuessError(f'x 座標の誤差が大きすぎます: entire_x = {entire_x}, actual_x = {actual_x}')
 
@@ -181,9 +194,14 @@ def guess_lines(actual_width, actual_height, entire_width, entire_height):
         スクロールバー領域の高さからドロップ枠が何行あるか推定する
         スクロールバーを用いる関係上、原理的に 2 行以下は推定不可
     """
-    if abs(entire_width - actual_width) > 6:
+    delta = abs(entire_width - actual_width)
+    if delta > 9:
         # 比較しようとしている領域が異なる可能性が高い
-        raise CannotGuessError(f'幅の誤差が大きすぎます: entire_width = {entire_width}, actual_width = {actual_width}')
+        raise CannotGuessError(
+            f'幅の誤差が大きすぎます: delta = {delta}, '
+            f'entire_width = {entire_width}, '
+            f'actual_width = {actual_width}'
+        )
 
     ratio = actual_height / entire_height
     logger.debug('scrollbar ratio: %s', ratio)
@@ -208,7 +226,86 @@ def _detect_scrollbar_region(im, binary_threshold, filter_func):
     ret, th1 = cv2.threshold(im, binary_threshold, 255, cv2.THRESH_BINARY)
     contours, hierarchy = cv2.findContours(th1, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     return [c for c in contours if filter_func(c, im)]
-    
+
+
+def _is_same_contour(contour0, contour1):
+    x0, y0, w0, h0 = cv2.boundingRect(contour0)
+    x1, y1, w1, h1 = cv2.boundingRect(contour1)
+    if abs(x1 - x0) > 1:
+        return False
+    elif abs(y1 - y0) > 1:
+        return False
+    elif abs(w1 - w0) > 1:
+        return False
+    elif abs(h1 - h0) > 1:
+        return False
+    return True
+
+
+def _try_to_detect_scrollbar(im_gray, im_orig_for_debug=None):
+    """
+        スクロールバーおよびスクロール可能領域の検出
+
+        debug 画像を出力したい場合は im_orig_for_debug に二値化
+        される前の元画像 (crop されたもの) を渡すこと。
+    """
+    # 二値化の閾値を高めにするとスクロールバー本体の領域を検出できる。
+    # 低めにするとスクロールバー可能領域を検出できる。
+    threshold_for_actual = 60
+    # スクロール可能領域の判定は、単一の閾値ではどうやっても PNG/JPEG の
+    # 両方に対応するのが難しい。そこで、閾値にレンジを設けて高い方から順に
+    # トライしていく。閾値が低くなるほど検出されやすいが、矩形がゆがみ
+    # やすくなり、後の誤検出につながる。そのため、高い閾値で検出できれば
+    # それを正とするのがよい。
+    thresholds_for_entire = (25, 24, 23)
+
+    actual_scrollbar_contours = _detect_scrollbar_region(
+        im_gray, threshold_for_actual, filter_contour_scrollbar)
+    if len(actual_scrollbar_contours) == 0:
+        return (None, None)
+
+    if im_orig_for_debug is not None:
+        cv2.drawContours(im_orig_for_debug, actual_scrollbar_contours, -1, (0, 255, 0), 3)
+
+    if len(actual_scrollbar_contours) > 1:
+        n = len(actual_scrollbar_contours)
+        raise TooManyAreasDetectedError(f'{n} actual scrollbar areas are detected')
+
+    actual_scrollbar_contour = actual_scrollbar_contours[0]
+
+    scrollable_area_contour = None
+    for th in thresholds_for_entire:
+        scrollable_area_contours = _detect_scrollbar_region(
+            im_gray, th, filter_contour_scrollable_area)
+        if len(scrollable_area_contours) == 0:
+            logger.debug(f'th {th}: scrollbar was found, but scrollable area is not found, retry')
+            continue
+
+        if len(scrollable_area_contours) > 1:
+            if im_orig_for_debug is not None:
+                cv2.drawContours(im_orig_for_debug, scrollable_area_contours, -1, (255, 0, 0), 3)
+
+            n = len(scrollable_area_contours)
+            raise TooManyAreasDetectedError(f'{n} scrollable areas are detected')
+
+        scrollable_area_contour = scrollable_area_contours[0]
+        same_contour = _is_same_contour(actual_scrollbar_contour, scrollable_area_contour)
+        if same_contour:
+            # 同じ領域を検出してしまっている場合、誤検出とみなして
+            # 閾値を下げてリトライする
+            logger.debug(f'th {th}: seems to detect scrollbar as scrollable area, retry')
+            continue
+        break
+
+    if im_orig_for_debug is not None and scrollable_area_contour is not None:
+        cv2.drawContours(im_orig_for_debug, [scrollable_area_contour], -1, (255, 0, 0), 3)
+
+    # thresholds_for_entire のすべての閾値でスクロール可能領域が検出できない
+    # 場合は、そもそも元のスクロールバーが誤認識であった可能性が出てくる。
+    # この場合 scrollable_area_contour は None になるが、その場合は呼び出し
+    # 側でスクロールバー誤検出とみなすようにする。
+    return actual_scrollbar_contour, scrollable_area_contour
+
 
 def guess_pageinfo(im, debug_draw_image=False, debug_image_name=None):
     """
@@ -225,41 +322,24 @@ def guess_pageinfo(im, debug_draw_image=False, debug_image_name=None):
     logger.debug('cropped image size (for scrollbar): (width, height) = (%s, %s)', cr_w, cr_h)
     im_gray = cv2.cvtColor(cropped, cv2.COLOR_BGR2GRAY)
 
-    # 二値化の閾値を高めにするとスクロールバー本体の領域を検出できる。
-    # 低めにするとスクロールバー可動域全体の領域を検出できる。
-    threshold_for_actual = 60
-    threshold_for_entire = 25
-    
-    actual_scrollbar_contours = _detect_scrollbar_region(
-        im_gray, threshold_for_actual, filter_contour_scrollbar)
-    if len(actual_scrollbar_contours) == 0:
-        # スクロールバーがない場合はページ数1、全体行数は推定不能
-        return NOSCROLL_PAGE_INFO
+    if debug_draw_image:
+        im_orig_for_debug = cropped
+    else:
+        im_orig_for_debug = None
 
-    scrollable_area_contours = _detect_scrollbar_region(
-        im_gray, threshold_for_entire, filter_contour_scrollable_area)
-    if len(scrollable_area_contours) == 0:
-        # スクロール可能領域が検出できない場合、元のスクロールバーが
-        # 誤認識の可能性がきわめて高い。よってこのケースはスクロールバー
-        # なしとして扱う
-        return NOSCROLL_PAGE_INFO
+    actual_scrollbar_region, scrollable_area_region = \
+        _try_to_detect_scrollbar(im_gray, im_orig_for_debug)
 
     if debug_draw_image:
-        cv2.drawContours(cropped, actual_scrollbar_contours, -1, (0, 255, 0), 3)
-        cv2.drawContours(cropped, scrollable_area_contours, -1, (255, 0, 0), 3)
         logger.debug('writing debug image: %s', debug_image_name)
         cv2.imwrite(debug_image_name, cropped)
 
-    if len(actual_scrollbar_contours) > 1:
-        n = len(actual_scrollbar_contours)
-        raise TooManyAreasDetectedError(f'{n} actual scrollbar areas are detected')
-    if len(scrollable_area_contours) > 1:
-        n = len(scrollable_area_contours)
-        raise TooManyAreasDetectedError(f'{n} scrollable areas are detected')
+    if actual_scrollbar_region is None or scrollable_area_region is None:
+        # スクロールバーが検出できない or スクロールバー誤検出（と推定）
+        # どちらの場合もスクロールバーなしとして扱う。
+        return NOSCROLL_PAGE_INFO
 
-    actual_scrollbar_region = actual_scrollbar_contours[0]
     asr_x, asr_y, asr_w, asr_h = cv2.boundingRect(actual_scrollbar_region)
-    scrollable_area_region = scrollable_area_contours[0]
     esr_x, esr_y, esr_w, esr_h = cv2.boundingRect(scrollable_area_region)
 
     pages = guess_pages(asr_w, asr_h, esr_w, esr_h)
@@ -320,9 +400,9 @@ def parse_args():
     parser.add_argument('filename', nargs='+')
     parser.add_argument(
         '-l', '--loglevel',
-        choices=('DEBUG', 'INFO', 'WARNING'),
-        default='INFO',
-        help='set loglevel [default: INFO]',
+        choices=('debug', 'info', 'warning'),
+        default='info',
+        help='set loglevel [default: info]',
     )
     # parser.add_argument(
     #     '-dq', '--debug-qp',
@@ -351,5 +431,5 @@ def parse_args():
 if __name__ == '__main__':
     args = parse_args()
     logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(message)s')
-    logger.setLevel(args.loglevel)
+    logger.setLevel(args.loglevel.upper())
     main(args)
