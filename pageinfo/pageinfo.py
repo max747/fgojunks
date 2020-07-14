@@ -257,7 +257,7 @@ def _try_to_detect_scrollbar(im_gray, im_orig_for_debug=None):
     # トライしていく。閾値が低くなるほど検出されやすいが、矩形がゆがみ
     # やすくなり、後の誤検出につながる。そのため、高い閾値で検出できれば
     # それを正とするのがよい。
-    thresholds_for_entire = (25, 24, 23)
+    thresholds_for_entire = (27, 26, 25, 24, 23)
 
     actual_scrollbar_contours = _detect_scrollbar_region(
         im_gray, threshold_for_actual, filter_contour_scrollbar)
