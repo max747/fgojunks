@@ -105,3 +105,14 @@ class PageinfoTest(unittest.TestCase):
             '004.jpg': (1, 2, 4),
         }
         self._test_guess_pageinfo(images_dir, expected)
+
+    def test_guess_pageinfo_006(self):
+        """
+            閾値の設定が 26 以下ではスクロール可能領域の
+            下端にヒゲが出てしまい矩形幅が広がってしまう jpg 画像。
+        """
+        images_dir = get_images_absdir('006')
+        expected = {
+            '000.jpg': (1, 2, 4),
+        }
+        self._test_guess_pageinfo(images_dir, expected)
