@@ -228,16 +228,17 @@ def _detect_scrollbar_region(im, binary_threshold, filter_func):
     return [c for c in contours if filter_func(c, im)]
 
 
-def _is_same_contour(contour0, contour1):
+def _likely_to_same_contour(contour0, contour1):
     x0, y0, w0, h0 = cv2.boundingRect(contour0)
     x1, y1, w1, h1 = cv2.boundingRect(contour1)
-    if abs(x1 - x0) > 1:
+    threshold = 3
+    if abs(x1 - x0) > threshold:
         return False
-    elif abs(y1 - y0) > 1:
+    elif abs(y1 - y0) > threshold:
         return False
-    elif abs(w1 - w0) > 1:
+    elif abs(w1 - w0) > threshold:
         return False
-    elif abs(h1 - h0) > 1:
+    elif abs(h1 - h0) > threshold:
         return False
     return True
 
@@ -251,7 +252,7 @@ def _try_to_detect_scrollbar(im_gray, im_orig_for_debug=None):
     """
     # 二値化の閾値を高めにするとスクロールバー本体の領域を検出できる。
     # 低めにするとスクロールバー可能領域を検出できる。
-    threshold_for_actual = 60
+    threshold_for_actual = 63
     # スクロール可能領域の判定は、単一の閾値ではどうやっても PNG/JPEG の
     # 両方に対応するのが難しい。そこで、閾値にレンジを設けて高い方から順に
     # トライしていく。閾値が低くなるほど検出されやすいが、矩形がゆがみ
@@ -289,7 +290,7 @@ def _try_to_detect_scrollbar(im_gray, im_orig_for_debug=None):
             raise TooManyAreasDetectedError(f'{n} scrollable areas are detected')
 
         scrollable_area_contour = scrollable_area_contours[0]
-        same_contour = _is_same_contour(actual_scrollbar_contour, scrollable_area_contour)
+        same_contour = _likely_to_same_contour(actual_scrollbar_contour, scrollable_area_contour)
         if same_contour:
             # 同じ領域を検出してしまっている場合、誤検出とみなして
             # 閾値を下げてリトライする
@@ -327,12 +328,13 @@ def guess_pageinfo(im, debug_draw_image=False, debug_image_name=None):
     else:
         im_orig_for_debug = None
 
-    actual_scrollbar_region, scrollable_area_region = \
-        _try_to_detect_scrollbar(im_gray, im_orig_for_debug)
-
-    if debug_draw_image:
-        logger.debug('writing debug image: %s', debug_image_name)
-        cv2.imwrite(debug_image_name, cropped)
+    try:
+        actual_scrollbar_region, scrollable_area_region = \
+            _try_to_detect_scrollbar(im_gray, im_orig_for_debug)
+    finally:
+        if debug_draw_image:
+            logger.debug('writing debug image: %s', debug_image_name)
+            cv2.imwrite(debug_image_name, cropped)
 
     if actual_scrollbar_region is None or scrollable_area_region is None:
         # スクロールバーが検出できない or スクロールバー誤検出（と推定）
