@@ -42,6 +42,10 @@ class PageinfoTest(unittest.TestCase):
         self._test_guess_pageinfo(images_dir, expected)
 
     def test_guess_pageinfo_001(self):
+        """
+            いわゆる「イシュタル弓問題」のテスト。
+            背景領域のオブジェクトをスクロールバーと誤認する問題
+        """
         images_dir = get_images_absdir('001')
         expected = {
             '000.png': (1, 1, 3),
@@ -114,5 +118,16 @@ class PageinfoTest(unittest.TestCase):
         images_dir = get_images_absdir('006')
         expected = {
             '000.jpg': (1, 2, 4),
+        }
+        self._test_guess_pageinfo(images_dir, expected)
+
+    def test_guess_pageinfo_007(self):
+        """
+            jpg 画像でイシュタル弓問題が再現するケース。
+            スクロールバー判定の閾値を 60 -> 61 に上げると解決する。
+        """
+        images_dir = get_images_absdir('007')
+        expected = {
+            '000.jpg': (1, 1, 3),
         }
         self._test_guess_pageinfo(images_dir, expected)
