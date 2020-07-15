@@ -252,7 +252,7 @@ def _try_to_detect_scrollbar(im_gray, im_orig_for_debug=None):
     """
     # 二値化の閾値を高めにするとスクロールバー本体の領域を検出できる。
     # 低めにするとスクロールバー可能領域を検出できる。
-    threshold_for_actual = 63
+    threshold_for_actual = 65
     # スクロール可能領域の判定は、単一の閾値ではどうやっても PNG/JPEG の
     # 両方に対応するのが難しい。そこで、閾値にレンジを設けて高い方から順に
     # トライしていく。閾値が低くなるほど検出されやすいが、矩形がゆがみ

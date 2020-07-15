@@ -17,6 +17,8 @@ def get_images_absdir(dirname):
 class PageinfoTest(unittest.TestCase):
     def _test_guess_pageinfo(self, images_dir, expected):
         for entry in os.listdir(images_dir):
+            if os.path.splitext(entry)[1] not in ('.png', '.jpg'):
+                continue
             impath = os.path.join(images_dir, entry)
             with self.subTest(image=impath):
                 im = cv2.imread(impath)
@@ -123,11 +125,16 @@ class PageinfoTest(unittest.TestCase):
 
     def test_guess_pageinfo_007(self):
         """
-            jpg 画像でイシュタル弓問題が再現するケース。
-            スクロールバー判定の閾値を 60 -> 61 に上げると解決する。
+            jpg 画像でイシュタル弓問題を含むスクロールバー誤検出が
+            発生するケース。
+            000 イシュタル弓問題
+                スクロールバー判定の閾値を 60 -> 61 に上げると解決する。
+            001 スクロール可能領域をスクロールバーと誤検出
+                スクロールバー判定の閾値を 64 以上に上げると解決する。
         """
         images_dir = get_images_absdir('007')
         expected = {
             '000.jpg': (1, 1, 3),
+            '001.jpg': (1, 2, 5),
         }
         self._test_guess_pageinfo(images_dir, expected)
