@@ -15,7 +15,8 @@ import (
 
 const (
 	program = "jpeger"
-	version = "0.1.0"
+	version = "0.2.0"
+	logName = "jpeger.log"
 
 	success = 0
 	failure = 1
@@ -59,7 +60,9 @@ func convertZipItems(srcPath, destPath string) error {
 		logger.Printf("  %s\n", f.Name)
 		buf, err := processZipItem(f)
 		if err != nil {
-			return err
+			logger.Printf("processZipFile: %v\n", err)
+			logger.Printf("skip processing %s\n", f.Name)
+			continue
 		}
 		stem, _ := splitExt(f.Name)
 		outputName := fmt.Sprintf("%s.jpg", stem)
@@ -94,7 +97,7 @@ func splitExt(src string) (stem, ext string) {
 }
 
 func run() int {
-	logFile, err := os.OpenFile("run.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	logFile, err := os.OpenFile(logName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		log.Fatal(err)
 		return failure
